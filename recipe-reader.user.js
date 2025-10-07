@@ -6,6 +6,7 @@
 // @author       j01t3d
 // @match        https://*/*
 // @grant        none
+// @license      MIT
 // ==/UserScript==
 
 (function() {
