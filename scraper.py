@@ -61,12 +61,14 @@ HEADERS = {
     "User-Agent": "recipe-reader/1.2 (+https://github.com/j01t3d/recipe-reader/)"
 }
 
-TOTAL_RECIPE_PAGES = 5000
-TOTAL_NONRECIPE_PAGES = 5000
-MIN_SIZE = 2000  # ~2 KB
+TOTAL_RECIPE_PAGES = TOTAL_NONRECIPE_PAGES = 5000
+MIN_SIZE = 2000   # ~2 KB
+MAX_SIZE = 300000 # ~300 KB, should prevent gigantic GIGABYTE FILES from downloading
 THREADS = 5
 RETRIES = 2
-RETRY_DELAY = 1  # seconds
+RETRY_DELAY = 1   # seconds
+
+totalCount = 0
 
 RECIPE_PER_SITE = TOTAL_RECIPE_PAGES // len(RECIPE_DOMAINS)
 NONRECIPE_PER_SITE = TOTAL_NONRECIPE_PAGES // len(NONRECIPE_SEEDS)
@@ -94,7 +96,7 @@ def make_filename(url):
 def fetch_page(url):
     for attempt in range(RETRIES):
         try:
-            resp = requests.get(url, headers=HEADERS, timeout=10)
+            resp = requests.get(url, headers=HEADERS, timeout=(3, 5))
             if resp.status_code == 200:
                 return resp.text
             time.sleep(RETRY_DELAY)
@@ -103,6 +105,7 @@ def fetch_page(url):
     return None
 
 def scrape_worker(seed_url, domain, out_folder, max_pages, visited_global):
+    global totalCount
     queue = deque([seed_url])
     count = 0
     local_visited = set()
@@ -116,7 +119,10 @@ def scrape_worker(seed_url, domain, out_folder, max_pages, visited_global):
             continue
 
         text = clean_text(page_html)
-        if len(text) < MIN_SIZE:
+
+        sizeFlag = len(text) < MIN_SIZE or len(text) > MAX_SIZE
+
+        if sizeFlag:
             continue
 
         fname = make_filename(url)
@@ -126,7 +132,8 @@ def scrape_worker(seed_url, domain, out_folder, max_pages, visited_global):
                 f.write(text)
             visited_global.add(url)
             count += 1
-            print(f"[{out_folder}] Scraped {count}/{max_pages}: {url}")
+            totalCount += 1
+            print(f"[{out_folder}] Scraped {round(round(totalCount)/(TOTAL_RECIPE_PAGES + TOTAL_NONRECIPE_PAGES)*10000)/100}%, {count}/{max_pages}: {url}")
 
         soup = BeautifulSoup(page_html, "html.parser")
         for a in soup.find_all("a", href=True):
