@@ -2,8 +2,16 @@ import os, re
 from collections import Counter
 import matplotlib.pyplot as plt
 import numpy as np
+import time
+
+from threading import Lock
+
+THREADS = 5
+
+# lock = Lock()
 
 def get_words_from_folder(folder):
+    startTime = time.time()
     words = []
     texts = []
     for filename in os.listdir(folder):
@@ -13,14 +21,19 @@ def get_words_from_folder(folder):
                 texts.append(text)
                 tokens = re.findall(r"[a-z']+", text)
                 words.extend(tokens)
+    endTime = time.time()
+    print("Time taken to merge words: ", endTime - startTime, " second(s) spent in folder ", folder)
     return words, texts
 
 def count_top_keywords_in_text(texts, top_keywords):
+    startTime = time.time()
     counts_per_file = []
     for text in texts:
         tokens = set(re.findall(r"[a-z']+", text))
         count = sum(1 for kw in top_keywords if kw in tokens)
         counts_per_file.append(count)
+    endTime = time.time()
+    print("Time taken to count top keywords: ", endTime - startTime, " second(s)")
     return counts_per_file
 
 def main():
@@ -69,11 +82,11 @@ def main():
     plt.hist(recipe_counts_per_file, bins=range(0, max(recipe_counts_per_file)+2), alpha=0.7, label='Recipes')
     plt.hist(nonrecipe_counts_per_file, bins=range(0, max(recipe_counts_per_file)+2), alpha=0.7, label='Non-recipes')
     plt.xlabel("Number of top 100 keywords per file")
-    plt.set_yscale("log")
     plt.ylabel("Number of files (logarithmic)")
     plt.title("Distribution of Top 100 Recipe Keywords in Files")
     plt.legend()
     plt.grid(axis='y')
+    plt.yscale('log')
     plt.show()
 
 if __name__ == "__main__":
